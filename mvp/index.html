@@ -8,8 +8,8 @@
 		-->
 		<script src="./gl-matrix-min.js"></script>
 		<div style="position: relative;">
-			<canvas id="txcanvas" width="1024" height="768" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
-			<canvas id="glcanvas" width="1024" height="768" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+			<canvas id="txcanvas" width="1280" height="800" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+			<canvas id="glcanvas" width="1280" height="800" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
 		</div>
 		<!-- The GLSL version string must be the first characters in a shader. This accounts for the odd looking first line -->
 		<script id="vertex_shader" type="x-shader/x-vertex">#version 300 es
@@ -117,11 +117,11 @@
 				axes.colr_buffer = gl.createBuffer();
 
 				axes.vrts = [ ];
-				axes.vrts.push(0, 0, 0);
-				axes.vrts.push(1, 0, 0);
-				axes.vrts.push(0, 0, 0);
-				axes.vrts.push(0, 1, 0);
-				axes.vrts.push(0, 0, 0);
+				axes.vrts.push(0, 0, 0.004);
+				axes.vrts.push(1, 0, 0.004);
+				axes.vrts.push(0, 0, 0.004);
+				axes.vrts.push(0, 1, 0.004);
+				axes.vrts.push(0, 0, 0.004);
 				axes.vrts.push(0, 0, 1);
 
 				axes.colors = [ 1, 0, 0,   1, 0, 0,   0, 1, 0,   0, 1, 0,   0, 0, 1,   0, 0, 1 ];
@@ -219,7 +219,7 @@
 				gl.clearColor(0.1, 0.1, 0.1, 1.0);
 				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 				gl.viewport(0, 0, glcanvas.clientWidth, glcanvas.clientHeight);
-
+				gl.enable(gl.DEPTH_TEST);
 				let P = mat4.create();
 				let M = mat4.create();
 				let V = mat4.create();
@@ -254,7 +254,7 @@
 			var y_axis = vec3.fromValues(0, 1, 0);
 			var z_axis = vec3.fromValues(0, 0, 1);
 			var near_plane = 1;
-			var far_plane = 100;
+			var far_plane = 20;
 
 			var glcanvas = document.getElementById('glcanvas');
 			var txcanvas = document.getElementById("txcanvas");

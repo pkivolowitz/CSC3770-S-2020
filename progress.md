@@ -10,8 +10,6 @@ Intro day - we talked about transformations including:
 
 ## February 11
 
-This is aspirational:
-
 * We learned about the viewing pipeline:
 	* Object coordinates
     * Modeling trasformations / space
@@ -19,4 +17,7 @@ This is aspirational:
 	* Projection / Clipping space / Normalized
 	* Device Coordinates
 	* P * V * M * p - this is multiplying by MVP
+	* that the inverse process is also useful
+* We were introduced to the difference between a shader `attribute` and `uniform`
+
 

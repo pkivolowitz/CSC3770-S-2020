@@ -1,0 +1,151 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+	</head>
+	<body style="background-color: #404040;">
+		<!--	Fairly minimalist demonstration of the roles of M, V and P.
+				Perry Kivolowitz - Carthage College Computer Science Department
+		-->
+		<script src="./gl-matrix-min.js"></script>
+		<script src="./shader_sources.js"></script>
+		<script src="./shader_support.js"></script>
+		<script src="./axes.js"></script>
+		<script src="./utilities.js"></script>
+		<script src="./square.js"></script>
+		<div style="position: relative;">
+			<canvas id="txcanvas" width="1280" height="800" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+			<canvas id="glcanvas" width="1280" height="800" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+		</div>
+		<!-- The GLSL version string must be the first characters in a shader. This accounts for the odd looking first line -->
+		<script>
+			/*	Enabling strict javascript means fewer silent errors.
+			*/
+			
+			'use strict';
+
+			function InitializeSolidColorShader() {
+				solid_shader.program = CreateShader(solid_color_shader.vrtx, solid_color_shader.frag);
+				console.log('Solid Shader Program: ' + solid_shader.program);
+				gl.useProgram(solid_shader.program);
+				solid_shader.a_vertex_coordinates = gl.getAttribLocation(solid_shader.program, "a_vertex_coordinates");
+				solid_shader.u_m = gl.getUniformLocation(solid_shader.program, "u_m");
+				solid_shader.u_v = gl.getUniformLocation(solid_shader.program, "u_v");
+				solid_shader.u_pj = gl.getUniformLocation(solid_shader.program, "u_pj");
+				solid_shader.u_color = gl.getUniformLocation(solid_shader.program, "u_color");
+				gl.useProgram(null);
+				console.log('Vertex Coordinate handle: ' + solid_shader.a_vertex_coordinates);
+				console.log('M Matrix handle: ' + solid_shader.u_m);
+				console.log('V Matrix handle: ' + solid_shader.u_v);
+				console.log('P Matrix handle: ' + solid_shader.u_pj);
+				console.log('Color handle: ' + solid_shader.u_color);
+			}
+
+			function InitializeIndexedColorShader() {
+				color_shader.program = CreateShader(index_color_shader.vrtx, index_color_shader.frag);
+				console.log('Program: ' + color_shader.program);
+				gl.useProgram(color_shader.program);
+				color_shader.a_vertex_coordinates = gl.getAttribLocation(color_shader.program, "a_vertex_coordinates");
+				color_shader.a_colors = gl.getAttribLocation(color_shader.program, "a_colors");
+				color_shader.u_m = gl.getUniformLocation(color_shader.program, "u_m");
+				color_shader.u_v = gl.getUniformLocation(color_shader.program, "u_v");
+				color_shader.u_pj = gl.getUniformLocation(color_shader.program, "u_pj");
+				gl.useProgram(null);
+				console.log('Vertex Coordinate handle: ' + color_shader.a_vertex_coordinates);
+				console.log('Color attribute handle: ' + color_shader.a_colors);
+				console.log('M Matrix handle: ' + color_shader.u_m);
+				console.log('V Matrix handle: ' + color_shader.u_v);
+				console.log('P Matrix handle: ' + color_shader.u_pj);
+			}
+
+			function ProjectText(P, mvp, ctx, text) {
+				let p = vec4.clone(P);
+				vec4.transformMat4(p, p, mvp);
+				p[0] /= p[3];
+				p[1] /= p[3];
+				let c = vec2.fromValues((p[0] * 0.5 + 0.5) * gl.canvas.width, (p[1] * -0.5 + 0.5) * gl.canvas.height);
+				ctx.fillText(text, c[0], c[1]);
+			}
+
+			function DrawScene(now) {
+				/*	Convert milliseconds to seconds.
+				*/
+
+				now /= 1000;
+				
+				/*	Initialize gl drawing area.
+				*/
+
+				gl.clearColor(0.1, 0.1, 0.1, 1.0);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				gl.viewport(0, 0, glcanvas.clientWidth, glcanvas.clientHeight);
+				gl.enable(gl.DEPTH_TEST);
+				let P = mat4.create();
+				let V = mat4.create();
+
+				mat4.perspective(P, Radians(30.0), glcanvas.clientWidth / glcanvas.clientHeight, near_plane, far_plane);
+				mat4.lookAt(V, vec3.fromValues(0, 0, 10), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
+
+				for (let i = 0; i < 8; i++) {
+					let offset = Math.PI * i / 2;
+					let M = mat4.create();
+					let x = 2 * Math.cos(now + offset / 2);
+					let y = 2 * Math.sin(now + offset / 2)
+					mat4.translate(M, M, vec3.fromValues(x, y, 0));			
+					mat4.rotate(M, M, Radians((now + offset) * 60), y_axis);
+
+					gl.useProgram(color_shader.program);
+					gl.uniformMatrix4fv(color_shader.u_m, false, M);
+					gl.uniformMatrix4fv(color_shader.u_v, false, V);
+					gl.uniformMatrix4fv(color_shader.u_pj, false, P);
+					gl.bindVertexArray(square.vao_s);
+					gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+					axes.Draw();
+					gl.bindVertexArray(null);
+					gl.useProgram(solid_shader.program);
+					gl.uniformMatrix4fv(solid_shader.u_m, false, M);
+					gl.uniformMatrix4fv(solid_shader.u_v, false, V);
+					gl.uniformMatrix4fv(solid_shader.u_pj, false, P);
+					gl.uniform4fv(solid_shader.u_color, vec4.fromValues(1.0, 1.0, 1.0, 1.0));
+					gl.bindVertexArray(square.vao_l);
+					gl.drawElements(gl.LINES, square.line_segment_indices.length, gl.UNSIGNED_SHORT, 0);
+					gl.useProgram(null);
+				}
+
+				requestAnimationFrame(DrawScene);
+			}
+
+			var vec3 = glMatrix.vec3;
+			var mat4 = glMatrix.mat4;
+			var vec4 = glMatrix.vec4;
+			var vec2 = glMatrix.vec2;
+
+			var x_axis = vec3.fromValues(1, 0, 0);
+			var y_axis = vec3.fromValues(0, 1, 0);
+			var z_axis = vec3.fromValues(0, 0, 1);
+			var near_plane = 1;
+			var far_plane = 20;
+
+			var glcanvas = document.getElementById('glcanvas');
+			var txcanvas = document.getElementById("txcanvas");
+			var gl = glcanvas.getContext('webgl2');
+			var ct = txcanvas.getContext("2d");
+			var color_shader = {};
+			var solid_shader = {};
+
+			ct.textAlign = "left";
+			ct.textBaseline = "bottom";
+			ct.clearRect(0, 0, ct.canvas.width, ct.canvas.height);
+			ct.font = "32px Helvetica";
+			ct.fillStyle = "#404040";
+			ct.fillText("Demonstrate relative roles of M, V and P", 20, 50);
+
+			InitializeIndexedColorShader();
+			InitializeSolidColorShader();
+
+			var axes = new Axes();
+			var square = new Square();
+
+			requestAnimationFrame(DrawScene)
+		</script>
+	</body>
+</html>

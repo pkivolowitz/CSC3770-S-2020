@@ -45,7 +45,7 @@ class Square {
 		gl.bindVertexArray(this.vao_l);
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.vrts_buffer);
 		gl.vertexAttribPointer(solid_shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(color_shader.a_vertex_coordinates);
+		gl.enableVertexAttribArray(solid_shader.a_vertex_coordinates);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vrts), gl.STATIC_DRAW);
 
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lindx_buffer);
@@ -62,5 +62,23 @@ class Square {
 		console.log('Vertices: ' + this.vrts);
 		console.log('Filled VAO: ' + this.vao_s);
 		console.log('Line Segment VAO:' + this.vao_l);
+	}
+
+	Draw(filled, M, V, P) {
+		let shader = filled ? color_shader : solid_shader;
+		gl.useProgram(shader.program);
+		gl.uniformMatrix4fv(shader.u_m, false, M);
+		gl.uniformMatrix4fv(shader.u_v, false, V);
+		gl.uniformMatrix4fv(shader.u_pj, false, P);
+		if (filled) {
+			gl.bindVertexArray(this.vao_s);
+			gl.drawElements(gl.TRIANGLES, this.filled_indices.length, gl.UNSIGNED_SHORT, 0);
+		} else {
+			gl.bindVertexArray(this.vao_l);
+			gl.uniform4fv(shader.u_color, vec4.fromValues(1.0, 1.0, 1.0, 1.0));
+			gl.drawElements(gl.LINES, this.line_segment_indices.length, gl.UNSIGNED_SHORT, 0);
+		}
+		gl.bindVertexArray(null);
+		gl.useProgram(null);
 	}
 }

@@ -48,9 +48,14 @@ class Axes {
 		console.log('VAO: ' + this.vao);	
 	}
 
-	Draw() {
+	Draw(M, V, P) {
+		gl.useProgram(color_shader.program);
+		gl.uniformMatrix4fv(color_shader.u_m, false, M);
+		gl.uniformMatrix4fv(color_shader.u_v, false, V);
+		gl.uniformMatrix4fv(color_shader.u_pj, false, P);
 		gl.bindVertexArray(this.vao);
 		gl.drawElements(gl.LINES, 6, gl.UNSIGNED_SHORT, 0);
+		gl.bindVertexArray(null);
+		gl.useProgram(null);
 	}
-
 }

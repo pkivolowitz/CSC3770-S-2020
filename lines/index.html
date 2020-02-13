@@ -48,8 +48,7 @@
 					mat4.translate(M, M, vec3.fromValues(x, y, 0));
 					// Each successive square is closer.
 					mat4.translate(M, M, vec3.fromValues(0, 0, i * 2));
-					// Each squares rotates once every four seconds (90 degrees per second).	
-					mat4.rotate(M, M, Radians(now * 90), y_axis);
+					mat4.rotate(M, M, Radians(offset * 32), z_axis);
 
 					square.Draw(!wireframe, M, V, P);
 					axes.Draw(M, V, P);

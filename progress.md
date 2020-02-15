@@ -20,4 +20,15 @@ Intro day - we talked about transformations including:
 	* that the inverse process is also useful
 * We were introduced to the difference between a shader `attribute` and `uniform`
 
+## February 13
+
+* We reviewed the viewing pipeline
+* We studied plumbing - plumbing is required because we are working with two entirely separate computers
+  * We can't share pointers to data between the computers since they are in different physical RAMs
+  * So instead we rendezvous on the text of uniform and attribute names
+  * The GPU assigns an array index recording certain information about the symbol
+  * The index is reported back to the CPU and used in various `bind` calls
+* `STATIC_DRAW` is a hint to the GPU on how to organize and store data in its own memory
+* `DYNAMIC_DRAW` is a hint to the GPU that the data will be overwritten frequently
+* These are just hints
 

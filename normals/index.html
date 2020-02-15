@@ -1,0 +1,156 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+	</head>
+	<body style="background-color: #404040;">
+		<!--	Fairly minimalist demonstration of the roles of M, V and P.
+				Perry Kivolowitz - Carthage College Computer Science Department
+		-->
+		<script src="./gl-matrix-min.js"></script>
+		<script src="./shader_sources.js"></script>
+		<script src="./shader_support.js"></script>
+		<script src="./axes.js"></script>
+		<script src="./utilities.js"></script>
+		<script src="./square.js"></script>
+		<script src="./triangle.js"></script>
+		<div style="position: relative;">
+			<canvas id="txcanvas" width="1280" height="768" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+			<canvas id="glcanvas" width="1280" height="768" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+		</div>
+		<script>
+			/*	Enabling strict javascript means fewer silent errors.
+			*/
+			
+			'use strict';
+
+			function DrawScene(now) {
+				now /= 1000;
+				ct.clearRect(0, 0, ct.canvas.width, ct.canvas.height);
+				ct.font = "32px Helvetica";
+				ct.fillStyle = "#ffffff";
+				ct.fillText("Cross Product Demonstration", 20, 50);
+				ct.fillText("Notice triangles face \"up\" and \"down\" but normals", 20, 50 + 32 * 1.15);
+				ct.fillText("go in same direction because order in cross product is reversed.", 20, 50 + 32 * 1.15 * 2);
+
+				gl.clearColor(0.1, 0.1, 0.1, 1.0);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				gl.viewport(0, 0, glcanvas.clientWidth, glcanvas.clientHeight);
+				gl.enable(gl.DEPTH_TEST);
+				let P = mat4.create();
+				let V = mat4.create();
+
+				mat4.perspective(P, Radians(30.0), glcanvas.clientWidth / glcanvas.clientHeight, near_plane, far_plane);
+				// The eye is located to the right of the spiral and our direction of gaze is shifted forward in Z to
+				// keep the spiral more centered in the screen. Up is up.
+				mat4.lookAt(V, vec3.fromValues(0, 2, 6), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
+				mat4.rotate(V, V, now / 4.987, y_axis);
+
+				for (let i = 0; i < 2; i++) {
+					let tilt = (i == 0) ? 1 : 0;
+					let M = mat4.create();
+					let theta = -Math.sin(now) / 1.5 + tilt * Math.PI;
+					let p = vec3.create();
+					mat4.scale(M, M, vec3.fromValues(2, 2, 2));
+					mat4.rotate(M, M, Radians(-90), x_axis);
+					mat4.rotate(M, M, theta, y_axis);
+					triangle.Draw(!wireframe, M, V, P);
+					axes.Draw(M, V, P);
+					RenderVertices(M, V, P, x_axis, '(1, 0)');
+					RenderVertices(M, V, P, y_axis, '(0, 1)');
+					RenderVertices(M, V, P, vec3.fromValues(0,0,0), '(0, 0)');
+					vec3.add(p, x_axis, y_axis);
+					vec3.scale(p, p, 1/3);
+					RenderVertices(M, V, P, p, '(\u2153, \u2153)');
+			
+					// Hand compute the normal to the triangle and update the `line`.
+					let barycenter = vec3.clone(p);
+					if (tilt == 0)
+						vec3.cross(p, x_axis, y_axis);
+					else
+						vec3.cross(p, y_axis, x_axis);
+					vec3.scale(p, p, 1.0/3.0);
+					mat4.translate(M, M, barycenter);
+					line.Draw(M, V, P, vec3.fromValues(0, 0, 0), p);
+					RenderVertices(M, V, P, p, 'N');
+				}
+				requestAnimationFrame(DrawScene);
+			}
+
+				
+			function RenderVertices(M, V, P, p, text) {
+				let pp = vec3.clone(p);
+				pp = vec4.fromValues(pp[0], pp[1], pp[2], 1.0);
+				let mvp = mat4.create();
+				mat4.multiply(mvp, V, M);
+				mat4.multiply(mvp, P, mvp);
+				ct.font = "16px Monaco";
+				ProjectText(pp, mvp, ct, text);
+			}
+
+			function InitCT() {
+				ct.textAlign = "left";
+				ct.textBaseline = "bottom";
+				ct.clearRect(0, 0, ct.canvas.width, ct.canvas.height);
+				ct.font = "32px Helvetica";
+				ct.fillStyle = "#F0F0F0";
+				ct.fillText("Demonstrate roles of M, V and P", 20, 50);
+			}
+
+			/*	Unused in this program as yet. Can be used, for example, to show coordinates of
+				objects or vertices as they animate. If used, the ct is cleared so that title
+				text would need to be redrawn too. Currently it (the title text) is drawn once.
+			*/
+
+			function ProjectText(P, mvp, ctx, text) {
+				let p = vec4.clone(P);
+				vec4.transformMat4(p, p, mvp);
+				p[0] /= p[3];
+				p[1] /= p[3];
+				let c = vec2.fromValues((p[0] * 0.5 + 0.5) * gl.canvas.width, (p[1] * -0.5 + 0.5) * gl.canvas.height);
+				ctx.fillText(text, c[0], c[1]);
+			}
+
+			/*	Global variables must be declared outside of a function.
+			*/
+
+			var vec3 = glMatrix.vec3;
+			var mat4 = glMatrix.mat4;
+			var vec4 = glMatrix.vec4;
+			var vec2 = glMatrix.vec2;
+
+			var x_axis = vec3.fromValues(1, 0, 0);
+			var y_axis = vec3.fromValues(0, 1, 0);
+			var z_axis = vec3.fromValues(0, 0, 1);
+			var near_plane = 1;
+			var far_plane = 100;
+
+			var glcanvas = document.getElementById('glcanvas');
+			var txcanvas = document.getElementById("txcanvas");
+			var gl = glcanvas.getContext('webgl2');
+			var ct = txcanvas.getContext("2d");
+			var color_shader = {};
+			var solid_shader = {};
+			var wireframe = false;
+
+			InitCT();
+			InitializeIndexedColorShader();
+			InitializeSolidColorShader();
+
+			/*	These must come after shaders have been initialized.
+			*/ 
+
+			var axes = new Axes();
+			var square = new Square();
+			var triangle = new Triangle();
+			var line = new VariableLineSegment();
+
+			document.addEventListener('keydown', function(event) {
+				if(event.key == 'w') {
+					wireframe = !wireframe;
+				}
+			});
+
+			requestAnimationFrame(DrawScene)
+		</script>
+	</body>
+</html>

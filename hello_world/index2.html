@@ -107,12 +107,59 @@
 				console.log('PJ Matrix handle: ' + color_shader.u_pj);
 			}
 
+			function CopyTriple(o, i, ooffset, ioffset) {
+				o[ooffset + 0] = i[ioffset + 0];
+				o[ooffset + 1] = i[ioffset + 1];
+				o[ooffset + 2] = i[ioffset + 2];
+			}
+
+			function RecalculateOutline(triangle) {
+				if (triangle.vrts.length % 9 != 0)
+					throw('vrts length is not a multiple of 9')
+				let num_triangles = triangle.vrts.length / 9;
+				let num_line_segs = num_triangles * 3;
+				triangle.lsv = [ ]
+				for (let triangle_counter = 0; triangle_counter < num_triangles; triangle_counter++) {
+					let v0_offset = triangle_counter * 9;
+					let v1_offset = v0_offset + 3;
+					let v2_offset = v1_offset + 3;
+					let lsv_base = triangle_counter * 18;
+					/* V0 */ 
+					triangle.lsv.push(triangle.vrts[v0_offset + 0]);
+					triangle.lsv.push(triangle.vrts[v0_offset + 1]);
+					triangle.lsv.push(triangle.vrts[v0_offset + 2]);
+					/* V1 */ 
+					triangle.lsv.push(triangle.vrts[v1_offset + 0]);
+					triangle.lsv.push(triangle.vrts[v1_offset + 1]);
+					triangle.lsv.push(triangle.vrts[v1_offset + 2]);
+					/* V1 */ 
+					triangle.lsv.push(triangle.vrts[v1_offset + 0]);
+					triangle.lsv.push(triangle.vrts[v1_offset + 1]);
+					triangle.lsv.push(triangle.vrts[v1_offset + 2]);
+					/* V2 */ 
+					triangle.lsv.push(triangle.vrts[v2_offset + 0]);
+					triangle.lsv.push(triangle.vrts[v2_offset + 1]);
+					triangle.lsv.push(triangle.vrts[v2_offset + 2]);
+					/* V2 */ 
+					triangle.lsv.push(triangle.vrts[v2_offset + 0]);
+					triangle.lsv.push(triangle.vrts[v2_offset + 1]);
+					triangle.lsv.push(triangle.vrts[v2_offset + 2]);
+					/* V0 */ 
+					triangle.lsv.push(triangle.vrts[v0_offset + 0]);
+					triangle.lsv.push(triangle.vrts[v0_offset + 1]);
+					triangle.lsv.push(triangle.vrts[v0_offset + 2]);
+				}
+			}
+
 			function InitializeTriangle() {
 				triangle.vao = gl.createVertexArray();
 				triangle.vrts_buffer = gl.createBuffer();
+				triangle.line_segs_buffer = gl.createBuffer();
 				triangle.colr_buffer = gl.createBuffer();
 
 				triangle.vrts = [ ];
+				triangle.lsv = [ ];
+
 				let p = vec3.create();
 				let m = mat4.create();
 				triangle.vrts.push(x_axis[0], x_axis[1], x_axis[2]);
@@ -121,6 +168,8 @@
 					vec3.transformMat4(p, x_axis, m);
 					triangle.vrts.push(p[0], p[1], p[2]);
 				}
+				RecalculateOutline(triangle);
+
 				console.log(triangle.vrts);
 				triangle.colors = [ 1, 0, 0, 0, 0, 1, 0, 1, 0 ];
 

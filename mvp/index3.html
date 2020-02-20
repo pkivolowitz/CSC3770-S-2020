@@ -43,8 +43,8 @@
 				// Comment out BOTH to see the original with colors coming from the vao.
 				{
 					// The model coordinates are +/- sqrt(2)/2 - this makes them 0 to 1.
-					//c = (model_coordinates + vec4(0.353553390593274, 0.353553390593274, 0.0, 0.0)) / vec4(0.707106781186548, 0.707106781186548, 1.0, 1.0);
-					//c.b = 0.0;
+					c = (model_coordinates + vec4(0.353553390593274, 0.353553390593274, 0.0, 0.0)) / vec4(0.707106781186548, 0.707106781186548, 1.0, 1.0);
+					c.b = 0.0;
 				}
 				{
 					//if (eye_coordinates.x < 0.0) {

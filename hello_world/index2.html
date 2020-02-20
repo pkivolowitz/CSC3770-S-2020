@@ -34,6 +34,26 @@
 				frag_color = colors;
 			}
 		</script>
+		<script id="sv_shader" type="x-shader/x-vertex">#version 300 es
+			uniform mat4 u_mv;
+			uniform mat4 u_pj;
+			in vec3 a_vertex_coordinates;
+
+			void main(void)
+			{ 
+				gl_Position = u_pj * u_mv * vec4(a_vertex_coordinates, 1.0);
+			}
+		</script>
+		<script id="sf_shader" type="x-shader/x-fragment">#version 300 es
+			precision mediump float;
+			in vec4 colors;
+			uniform vec4 u_color;
+			out vec4 frag_color;
+			void main(void)
+			{
+				frag_color = u_color;
+			}
+		</script>
 		<script>
 			/*	Enabling strict javascript means fewer silent errors.
 			*/
@@ -107,6 +127,21 @@
 				console.log('PJ Matrix handle: ' + color_shader.u_pj);
 			}
 
+			function InitializeSolidShader() {
+				solid_shader.program = CreateShader("sv_shader", "sf_shader");
+				console.log('Program: ' + solid_shader.program);
+				gl.useProgram(solid_shader.program);
+				solid_shader.a_vertex_coordinates = gl.getAttribLocation(solid_shader.program, "a_vertex_coordinates");
+				solid_shader.u_colors = gl.getUniformLocation(solid_shader.program, "u_color");
+				solid_shader.u_mv = gl.getUniformLocation(solid_shader.program, "u_mv");
+				solid_shader.u_pj = gl.getUniformLocation(solid_shader.program, "u_pj");
+				gl.useProgram(null);
+				console.log('Vertex Coordinate handle: ' + solid_shader.a_vertex_coordinates);
+				console.log('Color uniform handle: ' + solid_shader.u_colors);
+				console.log('MV Matrix handle: ' + solid_shader.u_mv);
+				console.log('PJ Matrix handle: ' + solid_shader.u_pj);
+			}
+
 			function CopyTriple(o, i, ooffset, ioffset) {
 				o[ooffset + 0] = i[ioffset + 0];
 				o[ooffset + 1] = i[ioffset + 1];
@@ -149,6 +184,14 @@
 					triangle.lsv.push(triangle.vrts[v0_offset + 1]);
 					triangle.lsv.push(triangle.vrts[v0_offset + 2]);
 				}
+				gl.bindVertexArray(triangle.lsvao);
+				gl.bindBuffer(gl.ARRAY_BUFFER, triangle.line_segs_buffer);
+				gl.vertexAttribPointer(solid_shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
+				gl.enableVertexAttribArray(solid_shader.a_vertex_coordinates);
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangle.vrts), gl.STATIC_DRAW);
+				gl.bindVertexArray(null);
+				gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
 			}
 
 			function InitializeTriangle() {
@@ -156,6 +199,7 @@
 				triangle.vrts_buffer = gl.createBuffer();
 				triangle.line_segs_buffer = gl.createBuffer();
 				triangle.colr_buffer = gl.createBuffer();
+				triangle.lsvao = gl.createVertexArray();
 
 				triangle.vrts = [ ];
 				triangle.lsv = [ ];
@@ -255,6 +299,7 @@
 			var txcanvas = document.getElementById("txcanvas");
 			var gl = glcanvas.getContext('webgl2');
 			var ct = txcanvas.getContext("2d");
+			var solid_shader = {};
 			var color_shader = {};
 			var triangle = {};
 
@@ -266,6 +311,7 @@
 			ct.fillText("Hello World", 20, 50);
 
 			InitializeShader();
+			InitializeSolidShader();
 			InitializeTriangle();
 			requestAnimationFrame(DrawScene)
 		</script>

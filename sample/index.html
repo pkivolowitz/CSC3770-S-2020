@@ -1,0 +1,104 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+	</head>
+	<body style="background-color: #404040;">
+		<!--	Fairly minimalist demonstration of the roles of M, V and P.
+				Perry Kivolowitz - Carthage College Computer Science Department
+		-->
+		<script src="./gl-matrix-min.js"></script>
+		<script src="./shader_sources.js"></script>
+		<script src="./shader_support.js"></script>
+		<script src="./axes.js"></script>
+		<script src="./utilities.js"></script>
+		<script src="./disc.js"></script>
+		<div style="position: relative;">
+			<canvas id="txcanvas" width="1280" height="768" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+			<canvas id="glcanvas" width="1280" height="768" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+		</div>
+		<script>
+			/*	Enabling strict javascript means fewer silent errors.
+			*/
+			
+			'use strict';
+
+			function DrawScene(now) {
+				/*
+				now /= 1000;
+				gl.clearColor(0.1, 0.1, 0.1, 1.0);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				gl.viewport(0, 0, glcanvas.clientWidth, glcanvas.clientHeight);
+				gl.enable(gl.DEPTH_TEST);
+				let P = mat4.create();
+				let V = mat4.create();
+
+				mat4.perspective(P, Radians(40.0), glcanvas.clientWidth / glcanvas.clientHeight, near_plane, far_plane);
+				// The eye is located to the right of the spiral and our direction of gaze is shifted forward in Z to
+				// keep the spiral more centered in the screen. Up is up.
+				mat4.lookAt(V, vec3.fromValues(5, 0, 40), vec3.fromValues(0, 0, 25), vec3.fromValues(0, 1, 0));
+				*/
+				requestAnimationFrame(DrawScene);
+			}
+
+			function InitCT() {
+				ct.textAlign = "left";
+				ct.textBaseline = "bottom";
+				ct.clearRect(0, 0, ct.canvas.width, ct.canvas.height);
+				ct.font = "32px Helvetica";
+				ct.fillStyle = "#F0F0F0";
+				ct.fillText("Demonstrate roles of M, V and P", 20, 50);
+			}
+
+			/*	Unused in this program as yet. Can be used, for example, to show coordinates of
+				objects or vertices as they animate. If used, the ct is cleared so that title
+				text would need to be redrawn too. Currently it (the title text) is drawn once.
+			*/
+
+			function ProjectText(P, mvp, ctx, text) {
+				let p = vec4.clone(P);
+				vec4.transformMat4(p, p, mvp);
+				p[0] /= p[3];
+				p[1] /= p[3];
+				let c = vec2.fromValues((p[0] * 0.5 + 0.5) * gl.canvas.width, (p[1] * -0.5 + 0.5) * gl.canvas.height);
+				ctx.fillText(text, c[0], c[1]);
+			}
+
+			/*	Global variables must be declared outside of a function.
+			*/
+
+			var vec3 = glMatrix.vec3;
+			var mat4 = glMatrix.mat4;
+			var vec4 = glMatrix.vec4;
+			var vec2 = glMatrix.vec2;
+
+			var x_axis = vec3.fromValues(1, 0, 0);
+			var y_axis = vec3.fromValues(0, 1, 0);
+			var z_axis = vec3.fromValues(0, 0, 1);
+			var near_plane = 1;
+			var far_plane = 100;
+
+			var glcanvas = document.getElementById('glcanvas');
+			var txcanvas = document.getElementById("txcanvas");
+			var gl = glcanvas.getContext('webgl2');
+			var ct = txcanvas.getContext("2d");
+			var color_shader = {};
+			var solid_shader = {};
+			var wireframe = false;
+
+			InitCT();
+			InitializeIndexedColorShader();
+			InitializeSolidColorShader();
+			var disc = new WireframeDisc(0.5, 2.0, 36, 1, solid_shader);
+			/*	These must come after shaders have been initialized.
+			*/ 
+
+			document.addEventListener('keydown', function(event) {
+				if(event.key == 'w') {
+					wireframe = !wireframe;
+				}
+			});
+
+			requestAnimationFrame(DrawScene)
+		</script>
+	</body>
+</html>

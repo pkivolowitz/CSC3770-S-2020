@@ -47,6 +47,7 @@ class Disc  {
 				this.PushVertex(this.txtc, [u, v]);
 				mat4.rotate(r, r, incr_theta, z_axis);
 			}
+			inner_to_outer += incr_stack;
 		}
 
 		for (let stk = 0; stk < stacks; stk++) {
@@ -85,6 +86,21 @@ class Disc  {
 			this.triangle_adjacency[index_v1].push(i);
 			this.triangle_adjacency[index_v2].push(i);
 		}
+		this.RecalculateDisplayNormals();
+	}
+
+	RecalculateDisplayNormals(scalar = 0.2) {
+		this.display_normals = [ ];
+		for (let i = 0; i < this.nrml.length / 3; i++) {
+			let offset = i * 3;
+			let o = this.vrts.slice(offset, offset + 3)
+			this.PushVertex(this.display_normals, o);
+			let n = this.nrml.slice(offset, offset + 3);
+			vec3.normalize(n, n);
+			vec3.scale(n, n, scalar);
+			vec3.add(n, n, o);
+			this.PushVertex(this.display_normals, n);
+		}
 	}
 
 	LERP(a, b, t)
@@ -121,21 +137,70 @@ class Disc  {
 class WireframeDisc extends Disc {
 	/**
 	* A WireframeDisc will use the base geometry and render only solid color wireframe.
-	* Texturing will not be supported. Normals will not be supported.
+	* Texturing will not be supported.
 	*/
-	constructor(inner_radius, outer_radius, slices, stacks, solid_shader)
+	constructor(inner_radius, outer_radius, slices, stacks, shader)
 	{
 		super(inner_radius, outer_radius, slices, stacks);
+		this.shader = shader;
+		this.InitGLLineSegments();
+		this.InitGLDisplayNormals();
+	}
+
+	InitGLLineSegments() {
 		this.vao = gl.createVertexArray();
 		this.vrts_buffer = gl.createBuffer();
 		this.line_segs_indicies_buffer = gl.createBuffer();
-		gl.bindVertexArray(this.vao);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.vrts_buffer);
-		gl.vertexAttribPointer(solid_shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(solid_shader.a_vertex_coordinates);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vrts), gl.DYNAMIC_DRAW);
+		this.ReloadGLLineSegments(true);
+	}
+
+	InitGLDisplayNormals(scalar = 0.2) {
+		this.dn_vao = gl.createVertexArray();
+		this.dn_vrts_buffer = gl.createBuffer();
+		this.ReloadDisplayNormals();
+	}
+
+	ReloadDisplayNormals() {
+		gl.bindVertexArray(this.dn_vao);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.dn_vrts_buffer);
+		gl.vertexAttribPointer(this.shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(this.shader.a_vertex_coordinates);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.display_normals), gl.DYNAMIC_DRAW);
 		gl.bindVertexArray(null);
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 	}
 
+	ReloadGLLineSegments(do_index_buffer = false) {
+		gl.bindVertexArray(this.vao);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.vrts_buffer);
+		gl.vertexAttribPointer(this.shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(this.shader.a_vertex_coordinates);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vrts), gl.DYNAMIC_DRAW);
+		if (do_index_buffer) {
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.line_segs_indicies_buffer);
+			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.ls_indicies), gl.STATIC_DRAW);
+		}
+		gl.bindVertexArray(null);
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+	}
+
+	DrawNormals(mvp, color) {
+		gl.useProgram(this.shader.program);
+		gl.uniformMatrix4fv(this.shader.u_mvp, false, mvp);
+		gl.uniform4fv(this.shader.u_color, color);
+		gl.bindVertexArray(this.dn_vao);
+		gl.drawArrays(gl.LINES, 0, this.display_normals.length / 3.0);
+		gl.bindVertexArray(null);
+		gl.useProgram(null);
+	}
+
+	Draw(mvp, color) {
+		gl.useProgram(this.shader.program);
+		gl.uniformMatrix4fv(this.shader.u_mvp, false, mvp);
+		gl.uniform4fv(this.shader.u_color, color);
+		gl.bindVertexArray(this.vao);
+		gl.drawElements(gl.LINES, this.ls_indicies.length, gl.UNSIGNED_SHORT, 0);
+		gl.bindVertexArray(null);
+		gl.useProgram(null);
+	}
 }

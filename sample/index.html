@@ -23,20 +23,28 @@
 			'use strict';
 
 			function DrawScene(now) {
-				/*
+
 				now /= 1000;
+				ct.clearRect(0, 0, ct.canvas.width, ct.canvas.height);
 				gl.clearColor(0.1, 0.1, 0.1, 1.0);
 				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 				gl.viewport(0, 0, glcanvas.clientWidth, glcanvas.clientHeight);
 				gl.enable(gl.DEPTH_TEST);
 				let P = mat4.create();
 				let V = mat4.create();
+				let M = mat4.create();
+				let MVP = mat4.create();
 
 				mat4.perspective(P, Radians(40.0), glcanvas.clientWidth / glcanvas.clientHeight, near_plane, far_plane);
-				// The eye is located to the right of the spiral and our direction of gaze is shifted forward in Z to
-				// keep the spiral more centered in the screen. Up is up.
-				mat4.lookAt(V, vec3.fromValues(5, 0, 40), vec3.fromValues(0, 0, 25), vec3.fromValues(0, 1, 0));
-				*/
+				mat4.lookAt(V, vec3.fromValues(5, 5, 5), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
+				mat4.rotate(M, M, Radians(now * Math.PI * 10), y_axis);
+				mat4.multiply(MVP, V, M);
+				mat4.multiply(MVP, P, MVP);
+				disc.Draw(MVP, [1, 1, 1, 1]);
+				if (display_normals)
+					disc.DrawNormals(MVP, [1, 0.5, 0.5, 1]);
+				if (number_vertices)
+					NumberVertices(MVP, disc.vrts, ct);
 				requestAnimationFrame(DrawScene);
 			}
 
@@ -44,15 +52,18 @@
 				ct.textAlign = "left";
 				ct.textBaseline = "bottom";
 				ct.clearRect(0, 0, ct.canvas.width, ct.canvas.height);
-				ct.font = "32px Helvetica";
+				ct.font = "16px Helvetica";
 				ct.fillStyle = "#F0F0F0";
-				ct.fillText("Demonstrate roles of M, V and P", 20, 50);
 			}
 
-			/*	Unused in this program as yet. Can be used, for example, to show coordinates of
-				objects or vertices as they animate. If used, the ct is cleared so that title
-				text would need to be redrawn too. Currently it (the title text) is drawn once.
-			*/
+			function NumberVertices(mvp, v, ctx) {
+				let num_vertices = v.length / 3;
+				for (let vertex_index = 0; vertex_index < num_vertices; vertex_index++) {
+					let offset = vertex_index * 3;
+					let p = vec4.fromValues(v[offset], v[offset + 1], v[offset + 2], 1);
+					ProjectText(p, mvp, ctx, String(vertex_index));
+				}
+			}
 
 			function ProjectText(P, mvp, ctx, text) {
 				let p = vec4.clone(P);
@@ -84,17 +95,25 @@
 			var color_shader = {};
 			var solid_shader = {};
 			var wireframe = false;
+			var number_vertices = false;
+			var display_normals = false;
 
 			InitCT();
 			InitializeIndexedColorShader();
 			InitializeSolidColorShader();
-			var disc = new WireframeDisc(0.5, 2.0, 36, 1, solid_shader);
+			var disc = new WireframeDisc(0.5, 2.0, 32, 2, solid_shader);
 			/*	These must come after shaders have been initialized.
 			*/ 
 
 			document.addEventListener('keydown', function(event) {
-				if(event.key == 'w') {
+				if (event.key == 'w') {
 					wireframe = !wireframe;
+				}
+				else if (event.key == 'v') {
+					number_vertices = !number_vertices;
+				}
+				else if (event.key == 'n') {
+					display_normals = !display_normals;
 				}
 			});
 

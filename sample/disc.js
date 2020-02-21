@@ -26,6 +26,7 @@ class Disc  {
 		this.vrts = [ ];
 		this.txtc = [ ];
 		this.nrml = [ ];
+		this.tr_vrts = [ ];
 		this.ls_indicies = [ ];
 		this.tr_indicies = [ ];
 		let incr_theta = Math.PI * 2.0 / slices;
@@ -33,6 +34,11 @@ class Disc  {
 		let z_axis = [0, 0, 1];
 		let inner_to_outer = 0;
 		let p = vec3.create();
+		// 'u' and 'v' will become texture coordinates. Currently they are
+		// computed but not used in rendering. The LERP function linearly
+		// interpolates its arguments. Here, from inner radius to outer
+		// radius. This sets the magnitude of a vector along the x axis 
+		// which will be rotated around a circle to produce each ring.
 		for (let stk = 0; stk < stacks + 1; stk++) {
 			let u = stk / stacks;
 			let x = [this.LERP(ir, or, inner_to_outer), 0, 0];
@@ -43,13 +49,27 @@ class Disc  {
 				//console.log(slc + ' ' + v);
 				vec3.transformMat4(p, x, r);
 				this.PushVertex(this.vrts, p);
-				this.PushVertex(this.nrml, [0, 0, 1]);
+				// Every vertex gets a normal which is initially along the z-axis.
+				// If the geometry changes over time, normals at each vertex must
+				// be recomputed and reloaded.
+				this.PushVertex(this.nrml, z_axis);
+				// Reminder, texture coordinates are computed but not yet otherwise used.
 				this.PushVertex(this.txtc, [u, v]);
 				mat4.rotate(r, r, incr_theta, z_axis);
 			}
 			inner_to_outer += incr_stack;
 		}
 
+		// This loop assembles an array containing the indices of each triangle's vertex.
+		// This data could be used directly for a call to 'drawElements' but it is also
+		// useful to building other data structures even if 'drawElements' is never 
+		// actually used.
+		//
+		// You the programmer know your model, so YOU must figure out how to assemble
+		// triangles. There are 6 pushes - two triangles. Think of these as upper and
+		// lower around each stack. This code may have to change a little to support
+		// partial discs. Maybe. Depends on the rest of your design. Notice the use
+		// of "mod".
 		for (let stk = 0; stk < stacks; stk++) {
 			for (let slc = 0; slc < slices; slc++)
 			{
@@ -62,16 +82,33 @@ class Disc  {
 			}
 		}
 
+		// Our triangles exist in a mesh of connected triangles. To recomute 
+		// normals (should the geometry change), you must know which triangles
+		// share any given vertex. This loop only initializes space - it does
+		// no computing. That is below.
 		this.triangle_adjacency = Array(this.vrts.length / 3)
 		for (let i = 0; i < this.vrts.length / 3; i++)
 			this.triangle_adjacency[i] = [ ];
 		
+		// Given a definition of which vertex belongs to which triangle (given
+		// by the triangle indicies), we must write out a new list of vertex 
+		// values because we want to use 'drawArrays' and not 'drawElements'.
+		// This is where duplicate vertices get written out.
+		for (let i = 0; i < this.tr_indicies.length; i++) {
+			let offset = this.tr_indicies[i];
+			let v = this.vrts.slice(offset * 3, offset * 3 + 3);
+			this.PushVertex(this.tr_vrts, v);
+		}
+
+		// Once again, 'tr_indicies' tells us what it connected to what. We use
+		// this here to create line segments for every triangle edge. And, we 
+		// build the adjacency data structure. 
 		for (let i = 0; i < this.tr_indicies.length / 3; i++)
 		{
 			// i is a triangle index. index_vn are indexies of vertexes withing triangles.
-			var index_v0 = this.tr_indicies[i * 3 + 0];
-			var index_v1 = this.tr_indicies[i * 3 + 1];
-			var index_v2 = this.tr_indicies[i * 3 + 2];
+			let index_v0 = this.tr_indicies[i * 3 + 0];
+			let index_v1 = this.tr_indicies[i * 3 + 1];
+			let index_v2 = this.tr_indicies[i * 3 + 2];
 
 			// Make the line segments for drawing outlines.
 			this.ls_indicies.push(index_v0);
@@ -81,12 +118,20 @@ class Disc  {
 			this.ls_indicies.push(index_v2);
 			this.ls_indicies.push(index_v0);
 
-			// Make the adjacency data structure.
+			// Make the adjacency data structure. Every line segment touching a vertex
+			// is added to a list indexable by vertex number.
 			this.triangle_adjacency[index_v0].push(i);
 			this.triangle_adjacency[index_v1].push(i);
 			this.triangle_adjacency[index_v2].push(i);
 		}
+		// This functon will be used by you to adjust the constant z-axis normals to their
+		// correct orientation. Then, the display normals will be rewritten from the new
+		// normal values.
+		this.RecalculateNormals();
 		this.RecalculateDisplayNormals();
+	}
+
+	RecalculateNormals() {
 	}
 
 	RecalculateDisplayNormals(scalar = 0.2) {
@@ -145,6 +190,13 @@ class WireframeDisc extends Disc {
 		this.shader = shader;
 		this.InitGLLineSegments();
 		this.InitGLDisplayNormals();
+		this.InitGLTriangles();
+	}
+
+	InitGLTriangles() {
+		this.t_vao = gl.createVertexArray();
+		this.t_vrts_buffer = gl.createBuffer();
+		this.ReloadGLTriangles();
 	}
 
 	InitGLLineSegments() {
@@ -160,28 +212,36 @@ class WireframeDisc extends Disc {
 		this.ReloadDisplayNormals();
 	}
 
-	ReloadDisplayNormals() {
-		gl.bindVertexArray(this.dn_vao);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.dn_vrts_buffer);
+	Reload(vao, buffer, vrts) {
+		gl.bindVertexArray(vao);
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.vertexAttribPointer(this.shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(this.shader.a_vertex_coordinates);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.display_normals), gl.DYNAMIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vrts), gl.DYNAMIC_DRAW);
+	}
+
+	Unbind() {
 		gl.bindVertexArray(null);
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 	}
 
+	ReloadDisplayNormals() {
+		this.Reload(this.dn_vao, this.dn_vrts_buffer, this.display_normals);
+		this.Unbind();
+	}
+
+	ReloadGLTriangles() {
+		this.Reload(this.t_vao, this.t_vrts_buffer, this.tr_vrts);
+		this.Unbind();
+	}
+
 	ReloadGLLineSegments(do_index_buffer = false) {
-		gl.bindVertexArray(this.vao);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.vrts_buffer);
-		gl.vertexAttribPointer(this.shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(this.shader.a_vertex_coordinates);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vrts), gl.DYNAMIC_DRAW);
+		this.Reload(this.vao, this.vrts_buffer, this.vrts);
 		if (do_index_buffer) {
 			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.line_segs_indicies_buffer);
 			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.ls_indicies), gl.STATIC_DRAW);
 		}
-		gl.bindVertexArray(null);
-		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		this.Unbind();
 	}
 
 	DrawNormals(mvp, color) {
@@ -194,7 +254,17 @@ class WireframeDisc extends Disc {
 		gl.useProgram(null);
 	}
 
-	Draw(mvp, color) {
+	DrawSolid(mvp, color) {
+		gl.useProgram(this.shader.program);
+		gl.uniformMatrix4fv(this.shader.u_mvp, false, mvp);
+		gl.uniform4fv(this.shader.u_color, color);
+		gl.bindVertexArray(this.t_vao);
+		gl.drawArrays(gl.TRIANGLES, 0, this.tr_vrts.length / 3.0);
+		gl.bindVertexArray(null);
+		gl.useProgram(null);
+	}
+
+	DrawWireframe(mvp, color) {
 		gl.useProgram(this.shader.program);
 		gl.uniformMatrix4fv(this.shader.u_mvp, false, mvp);
 		gl.uniform4fv(this.shader.u_color, color);
@@ -202,5 +272,14 @@ class WireframeDisc extends Disc {
 		gl.drawElements(gl.LINES, this.ls_indicies.length, gl.UNSIGNED_SHORT, 0);
 		gl.bindVertexArray(null);
 		gl.useProgram(null);
+	}
+
+	Draw(what, mvp, color) {
+		if (what.includes('solid'))
+			this.DrawSolid(mvp, color);
+		if (what.includes('wireframe'))
+			this.DrawWireframe(mvp, color);
+		if (what.includes('normals'))
+			this.DrawNormals(mvp, color);
 	}
 }

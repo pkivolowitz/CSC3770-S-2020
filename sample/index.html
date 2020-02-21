@@ -25,10 +25,18 @@
 			function DrawScene(now) {
 
 				now /= 1000;
+				// This clears the HTML text. Try commenting this out.
 				ct.clearRect(0, 0, ct.canvas.width, ct.canvas.height);
+				// The next three  lines  erase  the  GL context, setting it to the
+				// 'clearColor'. The depth buffer is also cleared to enable drawing
+				// a fresh scene.
+				// The 'viewport'  call  establishes  the  mapping  from normalized
+				// device coordinates to window coordinates.
 				gl.clearColor(0.1, 0.1, 0.1, 1.0);
 				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 				gl.viewport(0, 0, glcanvas.clientWidth, glcanvas.clientHeight);
+				// The "depth test" is  required  to enable display of only what is
+				// in "front".
 				gl.enable(gl.DEPTH_TEST);
 				let P = mat4.create();
 				let V = mat4.create();
@@ -37,14 +45,23 @@
 
 				mat4.perspective(P, Radians(40.0), glcanvas.clientWidth / glcanvas.clientHeight, near_plane, far_plane);
 				mat4.lookAt(V, vec3.fromValues(5, 5, 5), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
-				mat4.rotate(M, M, Radians(now * Math.PI * 10), y_axis);
+				// NOTE: This is NOT 15 RPM - you still have to figure that out.-
+				let theta = Radians(now * Math.PI * 12);
+				mat4.rotate(M, M, theta, x_axis);
+				mat4.rotate(M, M, theta, y_axis);
+				mat4.rotate(M, M, theta, z_axis);
 				mat4.multiply(MVP, V, M);
 				mat4.multiply(MVP, P, MVP);
-				disc.Draw(MVP, [1, 1, 1, 1]);
+				// M, V, and P are not longer being passed down separately but are precompounded here.
+				// More exotic shaders will need the individual matrices again in the future. 
+				disc.Draw(['wireframe'], MVP, [1, 1, 1, 1]);
 				if (display_normals)
-					disc.DrawNormals(MVP, [1, 0.5, 0.5, 1]);
+					disc.DrawNormals(MVP, [1, 0.15, 0.15, 1]);
 				if (number_vertices)
 					NumberVertices(MVP, disc.vrts, ct);
+				if (draw_solid)
+					disc.DrawSolid(MVP, [0.2, 0.4, 0.9, 1]);
+
 				requestAnimationFrame(DrawScene);
 			}
 
@@ -73,6 +90,13 @@
 				}
 			}
 
+			/*	ProjectText()
+			*	
+			*	Given a point in modeling coordinates and an MVP, compute the screen space
+			*	coordinate where that point will be after  projection through  the viewing
+			*	pipeline. 'p' is produced in "normalized device coordinates" which must be
+			*	converted to window coordinates by the method computing 'c'.
+			*/
 			function ProjectText(P, mvp, ctx, text) {
 				let p = vec4.clone(P);
 				vec4.transformMat4(p, p, mvp);
@@ -94,22 +118,26 @@
 			var y_axis = vec3.fromValues(0, 1, 0);
 			var z_axis = vec3.fromValues(0, 0, 1);
 			var near_plane = 1;
-			var far_plane = 100;
+			var far_plane = 15;
 
 			var glcanvas = document.getElementById('glcanvas');
 			var txcanvas = document.getElementById("txcanvas");
-			var gl = glcanvas.getContext('webgl2');
+			// This getContext call with ask for webgl2 to enable automatic antialiasing.
+			// Safari, for example,  does not support it  because Apple. Firefox does. Be
+			// like Firefox.
+			var gl = glcanvas.getContext('webgl2', { antialias: true });
 			var ct = txcanvas.getContext("2d");
 			var color_shader = {};
 			var solid_shader = {};
 			var wireframe = false;
 			var number_vertices = false;
 			var display_normals = false;
+			var draw_solid = false;
 
 			InitCT();
 			InitializeIndexedColorShader();
 			InitializeSolidColorShader();
-			var disc = new WireframeDisc(0.5, 2.0, 32, 2, solid_shader);
+			var disc = new WireframeDisc(0.5, 2.0, 72, 3, solid_shader);
 			/*	These must come after shaders have been initialized.
 			*/ 
 
@@ -122,6 +150,9 @@
 				}
 				else if (event.key == 'n') {
 					display_normals = !display_normals;
+				}
+				else if (event.key == 's') {
+					draw_solid = !draw_solid;
 				}
 			});
 

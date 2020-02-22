@@ -61,7 +61,6 @@ function InitializeSolidColorShader() {
 	let s = solid_shader;
 	s.program = CreateShader(solid_color_shader.vrtx, solid_color_shader.frag);
 	gl.useProgram(s.program);
-	s.a_vertex_coordinates = gl.getAttribLocation(s.program, "a_vertex_coordinates");
 	s.u_mvp = gl.getUniformLocation(s.program, "u_mvp");
 	s.u_color = gl.getUniformLocation(s.program, "u_color");
 	gl.useProgram(null);

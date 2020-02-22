@@ -26,8 +26,8 @@ var phong_pp_shader = {
 index_color_shader.vrtx = `#version 300 es
 uniform mat4 u_mvp;
 
-in vec3 a_vertex_coordinates;
-in vec3 a_colors;
+layout(location = 0) in vec3 a_vertex_coordinates;
+layout(location = 1) in vec3 a_colors;
 
 out vec4 colors;
 
@@ -53,8 +53,7 @@ void main(void)
 
 solid_color_shader.vrtx = `#version 300 es
 uniform mat4 u_mvp;
-
-in vec3 a_vertex_coordinates;
+layout(location = 0) in vec3 a_vertex_coordinates;
 
 void main(void)
 {

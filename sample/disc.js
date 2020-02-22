@@ -1,6 +1,14 @@
 ;
 
+/** @name Disc */
 class Disc  {
+	/** constructor()
+	* @param {float} ir	inner radius
+	* @param {float} or	outer radius
+	* @param {int} slices	number of slices around the disc
+	* @param {int} stacks	number of stacks across the disc
+	* @return {none} It's a constructor
+	*/
 	constructor(inner_radius, outer_radius, slices, stacks) {
 		this.InitializeVertices(inner_radius, outer_radius, slices, stacks);
 		this.InitGLLineSegments();
@@ -17,10 +25,11 @@ class Disc  {
 	*
 	* Also created is an index array for the outlines of all triangles. This WILL be
 	* drawn using indexed drawing.
-	* @param {ir}		inner radius (float)
-	* @param {or}		outer radius (float)
-	* @param {slices}	slices (int)
-	* @param {stacks}	stacks (int)
+	*
+	* @param {float} ir	inner radius
+	* @param {float} or	outer radius
+	* @param {int} slices	number of slices around the disc
+	* @param {int} stacks	number of stacks across the disc
 	* @return {none}
 	*/
 	InitializeVertices(ir, or, slices, stacks) {
@@ -134,21 +143,26 @@ class Disc  {
 		this.RecalculateDisplayNormals();
 	}
 
-	/** Reload()
+	/** ReloadTriple()
 	 * Both initially and when modifying geometry, this function stuff down
 	 * the given TRIPLES into the specified buffer. Note this function is
-	 * configured to work with Float32Array of triples. 
-	 * @param {vao} 	The Vertex Array Object to open. Closing is handled by Unbind().
-	 * @param {buffer} 	The gl ARRAY_BUFFER to which the data is stuff.
-	 * @param {vrts}	Float32 triples to stuff. 	
-	 * @param {const}	The default value is gl.STATIC_DRAW. 	
-	 * @return {none}
+	 * configured to work with Float32Array of TRIPLES.
+	 * 
+	 * Use of attribute_index allows us to break the too-tight connection between
+	 * the shader and the geometry. Our vertex shaders must use the layout(location=n)
+	 * declaration so that attribute indices can be known without loading them.
+	 * 
+	 * vao 		The Vertex Array Object to open. Closing is handled by Unbind().
+	 * buffer 	The gl ARRAY_BUFFER to which the data is stuff.
+	 * vrts		Float32 triples to stuff. 	
+	 * const	The default value is gl.STATIC_DRAW. 	
+	 * return 	{none}
 	*/
-	Reload(vao, buffer, vrts, draw_mode = gl.STATIC_DRAW, shader) {
+	ReloadTriple(vao, buffer, vrts, draw_mode = gl.STATIC_DRAW, attribute_index = 0) {
 		gl.bindVertexArray(vao);
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-		gl.vertexAttribPointer(shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(shader.a_vertex_coordinates);
+		gl.vertexAttribPointer(attribute_index, 3, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(attribute_index);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vrts), draw_mode);
 	}
 
@@ -249,18 +263,18 @@ class Disc  {
 		this.ReloadDisplayNormals();
 	}
 
-	ReloadDisplayNormals(shader = solid_shader) {
-		this.Reload(this.dn_vao, this.dn_vrts_buffer, this.display_normals, gl.DYNAMIC_DRAW, shader);
+	ReloadDisplayNormals() {
+		this.ReloadTriple(this.dn_vao, this.dn_vrts_buffer, this.display_normals, gl.DYNAMIC_DRAW);
 		this.Unbind();
 	}
 
-	ReloadGLTriangles(shader = solid_shader) {
-		this.Reload(this.t_vao, this.t_vrts_buffer, this.tr_vrts, gl.DYNAMIC_DRAW, shader);
+	ReloadGLTriangles() {
+		this.ReloadTriple(this.t_vao, this.t_vrts_buffer, this.tr_vrts, gl.DYNAMIC_DRAW);
 		this.Unbind();
 	}
 
-	ReloadGLLineSegments(do_index_buffer = false, shader = solid_shader) {
-		this.Reload(this.vao, this.vrts_buffer, this.vrts, gl.DYNAMIC_DRAW, shader);
+	ReloadGLLineSegments(do_index_buffer = false) {
+		this.ReloadTriple(this.vao, this.vrts_buffer, this.vrts, gl.DYNAMIC_DRAW);
 		if (do_index_buffer) {
 			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.line_segs_indicies_buffer);
 			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.ls_indicies), gl.DYNAMIC_DRAW);

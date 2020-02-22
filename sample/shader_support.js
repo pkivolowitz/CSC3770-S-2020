@@ -34,6 +34,28 @@ function CreateShader(vrtx, frag) {
 	return shaderProgram;
 }
 
+function InitializePhongShader() {
+	let s = phong_shader;
+	s.program = CreateShader(phong_pp_shader.vrtx, phong_pp_shader.frag);
+	gl.useProgram(s.program);
+	s.a_vertex_coordinates = gl.getAttribLocation(s.program, "a_vertices");
+	s.a_normals = gl.getAttribLocation(s.program, "a_normals");
+	s.u_mv = gl.getUniformLocation(s.program, "u_modelview_matrix");
+	s.u_nm = gl.getUniformLocation(s.program, "u_normal_matrix");
+	s.u_p = gl.getUniformLocation(s.program, "u_projection_matrix");
+	s.u_material = gl.getUniformLocation(s.program, "u_material");
+	s.u_light_pos = gl.getUniformLocation(s.program, "u_light_position");
+	gl.useProgram(null);
+
+	console.log('Solid shader:');
+	console.log('Program: ' + s.program);
+	console.log('Vertex handle: ' + s.a_vertex_coordinates);
+	console.log('MV handle: ' + s.u_mv);
+	console.log('NM handle: ' + s.u_nm);
+	console.log('P  handle: ' + s.u_p);
+	console.log('Material handle: ' + s.u_material);
+	console.log('Lght Pos handle: ' + s.u_light_pos);
+}
 
 function InitializeSolidColorShader() {
 	let s = solid_shader;

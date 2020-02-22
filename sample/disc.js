@@ -3,9 +3,12 @@
 class Disc  {
 	constructor(inner_radius, outer_radius, slices, stacks) {
 		this.InitializeVertices(inner_radius, outer_radius, slices, stacks);
+		this.InitGLLineSegments();
+		this.InitGLDisplayNormals();
+		this.InitGLTriangles();
 	}
 
-	/**
+	/** InitializeVertices()
 	* Responsible for initial creation of vertices, texture_coordinates and normals.
 	*
 	* In addition to the geometry, an index array assembling the triangles is created
@@ -131,29 +134,79 @@ class Disc  {
 		this.RecalculateDisplayNormals();
 	}
 
-	RecalculateNormals() {
+	/** Reload()
+	 * Both initially and when modifying geometry, this function stuff down
+	 * the given TRIPLES into the specified buffer. Note this function is
+	 * configured to work with Float32Array of triples. 
+	 * @param {vao} 	The Vertex Array Object to open. Closing is handled by Unbind().
+	 * @param {buffer} 	The gl ARRAY_BUFFER to which the data is stuff.
+	 * @param {vrts}	Float32 triples to stuff. 	
+	 * @param {const}	The default value is gl.STATIC_DRAW. 	
+	 * @return {none}
+	*/
+	Reload(vao, buffer, vrts, draw_mode = gl.STATIC_DRAW, shader) {
+		gl.bindVertexArray(vao);
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.vertexAttribPointer(shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(shader.a_vertex_coordinates);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vrts), draw_mode);
 	}
 
+	/** RecalculateNormals()
+	 * This will be written by you. It will use the adjacency data structure to
+	 * recalcuate normals should geometry change. It is needed right away because
+	 * geometry remains unchangable. After recalculating the normals, the line
+	 * segments used to visualize them must be recalculated.
+	*/
+	RecalculateNormals(scalar = 0.2) {
+		// Do stuff here.
+		this.RecalculateDisplayNormals(scalar);
+	}
+
+	/*	Because "unbinding" is so frequent, it is abstracted here.
+	*/
+	Unbind() {
+		gl.bindVertexArray(null);
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+	}
+
+	/** RecalculateDisplayNormals()
+	 * Whenever normals are recalculated, the line segments used to visualize
+	 * them need to be recalculated as well.
+	 * @param {float}	A scale factor appled to the normal - typically smallish.
+	 * @return {none}
+	*/
 	RecalculateDisplayNormals(scalar = 0.2) {
 		this.display_normals = [ ];
 		for (let i = 0; i < this.nrml.length / 3; i++) {
+			// Indexing by triple, meaning the beginning of each triple is a multiple of 3.
 			let offset = i * 3;
+			// The original value of the vertex is the base of the displayed normal.
 			let o = this.vrts.slice(offset, offset + 3)
 			this.PushVertex(this.display_normals, o);
 			let n = this.nrml.slice(offset, offset + 3);
 			vec3.normalize(n, n);
 			vec3.scale(n, n, scalar);
+			// Position the tip of the line segment "over" the original location.
 			vec3.add(n, n, o);
 			this.PushVertex(this.display_normals, n);
 		}
 	}
 
+	/** LERP
+	* Linear interpolation from a to be at fraction t.
+	* @param {float} 	when t is zero, return this.
+	* @param {float}	when t is one, return this.
+	* @param {float}	t - between 0 and 1 inclusive.
+	* @return {float}	the interpolated value between a and b inclusive.
+	*/
 	LERP(a, b, t)
 	{
 		return a + (b - a) * t;
 	}
 
-	/**
+	/** PushVertex
 	* Demultiplex a vecN, pushing each component onto the specified array.
 	* @param {number array}	an array of floats representing vertex locations.
 	* @param {vecN} the vertex whose component values will be pushed.
@@ -176,22 +229,6 @@ class Disc  {
 				break;
 		}
 	}
-}
-
-
-class WireframeDisc extends Disc {
-	/**
-	* A WireframeDisc will use the base geometry and render only solid color wireframe.
-	* Texturing will not be supported.
-	*/
-	constructor(inner_radius, outer_radius, slices, stacks, shader)
-	{
-		super(inner_radius, outer_radius, slices, stacks);
-		this.shader = shader;
-		this.InitGLLineSegments();
-		this.InitGLDisplayNormals();
-		this.InitGLTriangles();
-	}
 
 	InitGLTriangles() {
 		this.t_vao = gl.createVertexArray();
@@ -206,68 +243,61 @@ class WireframeDisc extends Disc {
 		this.ReloadGLLineSegments(true);
 	}
 
-	InitGLDisplayNormals(scalar = 0.2) {
+	InitGLDisplayNormals() {
 		this.dn_vao = gl.createVertexArray();
 		this.dn_vrts_buffer = gl.createBuffer();
 		this.ReloadDisplayNormals();
 	}
 
-	Reload(vao, buffer, vrts) {
-		gl.bindVertexArray(vao);
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-		gl.vertexAttribPointer(this.shader.a_vertex_coordinates, 3, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(this.shader.a_vertex_coordinates);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vrts), gl.DYNAMIC_DRAW);
-	}
-
-	Unbind() {
-		gl.bindVertexArray(null);
-		gl.bindBuffer(gl.ARRAY_BUFFER, null);
-	}
-
-	ReloadDisplayNormals() {
-		this.Reload(this.dn_vao, this.dn_vrts_buffer, this.display_normals);
+	ReloadDisplayNormals(shader = solid_shader) {
+		this.Reload(this.dn_vao, this.dn_vrts_buffer, this.display_normals, gl.DYNAMIC_DRAW, shader);
 		this.Unbind();
 	}
 
-	ReloadGLTriangles() {
-		this.Reload(this.t_vao, this.t_vrts_buffer, this.tr_vrts);
+	ReloadGLTriangles(shader = solid_shader) {
+		this.Reload(this.t_vao, this.t_vrts_buffer, this.tr_vrts, gl.DYNAMIC_DRAW, shader);
 		this.Unbind();
 	}
 
-	ReloadGLLineSegments(do_index_buffer = false) {
-		this.Reload(this.vao, this.vrts_buffer, this.vrts);
+	ReloadGLLineSegments(do_index_buffer = false, shader = solid_shader) {
+		this.Reload(this.vao, this.vrts_buffer, this.vrts, gl.DYNAMIC_DRAW, shader);
 		if (do_index_buffer) {
 			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.line_segs_indicies_buffer);
-			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.ls_indicies), gl.STATIC_DRAW);
+			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.ls_indicies), gl.DYNAMIC_DRAW);
 		}
 		this.Unbind();
 	}
 
-	DrawNormals(mvp, color) {
-		gl.useProgram(this.shader.program);
-		gl.uniformMatrix4fv(this.shader.u_mvp, false, mvp);
-		gl.uniform4fv(this.shader.u_color, color);
+	DrawNormals(mvp, color, shader = solid_shader) {
+		if (this.DrawNormals.last_shader == 'undefined') {
+		}
+		gl.useProgram(shader.program);
+		if (this.DrawNormals.last_shader != shader) {
+
+			this.DrawNormals.last_shader = shader;
+		}
+		gl.uniformMatrix4fv(shader.u_mvp, false, mvp);
+		gl.uniform4fv(shader.u_color, color);
 		gl.bindVertexArray(this.dn_vao);
 		gl.drawArrays(gl.LINES, 0, this.display_normals.length / 3.0);
 		gl.bindVertexArray(null);
 		gl.useProgram(null);
 	}
 
-	DrawSolid(mvp, color) {
-		gl.useProgram(this.shader.program);
-		gl.uniformMatrix4fv(this.shader.u_mvp, false, mvp);
-		gl.uniform4fv(this.shader.u_color, color);
+	DrawSolid(mvp, color, shader = solid_shader) {
+		gl.useProgram(shader.program);
+		gl.uniformMatrix4fv(shader.u_mvp, false, mvp);
+		gl.uniform4fv(shader.u_color, color);
 		gl.bindVertexArray(this.t_vao);
 		gl.drawArrays(gl.TRIANGLES, 0, this.tr_vrts.length / 3.0);
 		gl.bindVertexArray(null);
 		gl.useProgram(null);
 	}
 
-	DrawWireframe(mvp, color) {
-		gl.useProgram(this.shader.program);
-		gl.uniformMatrix4fv(this.shader.u_mvp, false, mvp);
-		gl.uniform4fv(this.shader.u_color, color);
+	DrawWireframe(mvp, color, shader = solid_shader) {
+		gl.useProgram(shader.program);
+		gl.uniformMatrix4fv(shader.u_mvp, false, mvp);
+		gl.uniform4fv(shader.u_color, color);
 		gl.bindVertexArray(this.vao);
 		gl.drawElements(gl.LINES, this.ls_indicies.length, gl.UNSIGNED_SHORT, 0);
 		gl.bindVertexArray(null);
@@ -283,3 +313,4 @@ class WireframeDisc extends Disc {
 			this.DrawNormals(mvp, color);
 	}
 }
+

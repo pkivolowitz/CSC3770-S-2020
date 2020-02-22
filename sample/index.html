@@ -47,7 +47,6 @@
 				mat4.lookAt(V, vec3.fromValues(5, 5, 5), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
 				// NOTE: This is NOT 15 RPM - you still have to figure that out.-
 				let theta = Radians(now * Math.PI * 3);
-				mat4.rotate(M, M, theta * 3, x_axis);
 				mat4.rotate(M, M, theta * 4, y_axis);
 				mat4.multiply(MVP, V, M);
 				mat4.multiply(MVP, P, MVP);
@@ -139,7 +138,7 @@
 			InitializeSolidColorShader();
 			InitializePhongShader();
 
-			var disc = new WireframeDisc(0.125, 2.0, 36, 8, solid_shader);
+			var disc = new Disc(0.125, 2.0, 36, 8, solid_shader);
 			/*	These must come after shaders have been initialized.
 			*/ 
 

@@ -38,8 +38,8 @@ function InitializePhongShader() {
 	let s = phong_shader;
 	s.program = CreateShader(phong_pp_shader.vrtx, phong_pp_shader.frag);
 	gl.useProgram(s.program);
-	s.a_vertex_coordinates = gl.getAttribLocation(s.program, "a_vertices");
-	s.a_normals = gl.getAttribLocation(s.program, "a_normals");
+	s.a_vertex_coordinates = VERTEX_INDEX;
+	s.a_normals = NORMAL_INDEX;
 	s.u_mv = gl.getUniformLocation(s.program, "u_modelview_matrix");
 	s.u_nm = gl.getUniformLocation(s.program, "u_normal_matrix");
 	s.u_p = gl.getUniformLocation(s.program, "u_projection_matrix");
@@ -47,9 +47,8 @@ function InitializePhongShader() {
 	s.u_light_pos = gl.getUniformLocation(s.program, "u_light_position");
 	gl.useProgram(null);
 
-	console.log('Solid shader:');
+	console.log('Phong shader:');
 	console.log('Program: ' + s.program);
-	console.log('Vertex handle: ' + s.a_vertex_coordinates);
 	console.log('MV handle: ' + s.u_mv);
 	console.log('NM handle: ' + s.u_nm);
 	console.log('P  handle: ' + s.u_p);
@@ -67,7 +66,6 @@ function InitializeSolidColorShader() {
 
 	console.log('Solid shader:');
 	console.log('Program: ' + solid_shader.program);
-	console.log('Vertex handle: ' + solid_shader.a_vertex_coordinates);
 	console.log('MVP handle: ' + solid_shader.u_mvp);
 	console.log('Color handle: ' + solid_shader.u_color);
 }
@@ -75,15 +73,11 @@ function InitializeSolidColorShader() {
 function InitializeIndexedColorShader() {
 	color_shader.program = CreateShader(index_color_shader.vrtx, index_color_shader.frag);
 	gl.useProgram(color_shader.program);
-	color_shader.a_vertex_coordinates = gl.getAttribLocation(color_shader.program, "a_vertex_coordinates");
-	color_shader.a_colors = gl.getAttribLocation(color_shader.program, "a_colors");
 	color_shader.u_mvp = gl.getUniformLocation(color_shader.program, "u_mvp");
 	gl.useProgram(null);
 
 	console.log('Color via attribute shader:');
 	console.log('Program: ' + color_shader.program);
-	console.log('Vertex handle: ' + color_shader.a_vertex_coordinates);
-	console.log('Color handle: ' + color_shader.a_colors);
 	console.log('MVP Matrix handle: ' + color_shader.u_mvp);
 }
 

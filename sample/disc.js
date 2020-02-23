@@ -1,6 +1,15 @@
 ;
 
 /** @name Disc */
+
+/*	Disc creates the necessary data structures for
+*
+*	BOTH  I N D E X E D  AND  N O N I N D E X E D 
+*	
+*	drawing. This means a lot of memory is consumed to provide generality and flexibility
+*	which isn't strictly necessary. For example, if all you need is indexed drawing tools
+*	then none of the duplicated values needed for non-indexed drawing would be necessary.
+*/
 class Disc  {
 	/** constructor()
 	* @param {float} ir	inner radius
@@ -35,10 +44,25 @@ class Disc  {
 	InitializeVertices(ir, or, slices, stacks) {
 		if (slices < 2)
 			throw new Error('Disc slices must be more than 2');
+
+		/*	vrts		the singular vertex coordinates (suitable for indexed drawing)
+			nrml		the singular normals (suitable for indexed drawing)
+			txtc		the singular texture coordinates (suitable for indexed drawing)
+
+			tr_vrts		vertex coordinates suitable for non-indexed drawing
+
+			ls_indicies	two int indexes (into vrts) specify a line segment
+			tr_indicies three int indexes (into vrts) specify a triangle (for index drawing)
+		*/
+
 		this.vrts = [ ];
 		this.txtc = [ ];
 		this.nrml = [ ];
+
 		this.tr_vrts = [ ];
+		this.tr_nrml = [ ];
+		this.tr_txtc = [ ];
+
 		this.ls_indicies = [ ];
 		this.tr_indicies = [ ];
 		let incr_theta = Math.PI * 2.0 / slices;
@@ -106,10 +130,19 @@ class Disc  {
 		// by the triangle indicies), we must write out a new list of vertex 
 		// values because we want to use 'drawArrays' and not 'drawElements'.
 		// This is where duplicate vertices get written out.
+		// 
+		// This must also be done for normals and texture coordinates.
 		for (let i = 0; i < this.tr_indicies.length; i++) {
 			let offset = this.tr_indicies[i];
+			// vertex coordinates
 			let v = this.vrts.slice(offset * 3, offset * 3 + 3);
 			this.PushVertex(this.tr_vrts, v);
+			// normal
+			v = this.nrml.slice(offset * 3, offset * 3 + 3);
+			this.PushVertex(this.tr_nrml, v);
+			// texture coordinate
+			v = this.txtc.slice(offset * 2, offset * 2 + 2);
+			this.PushVertex(this.tr_txtc, v);
 		}
 
 		// Once again, 'tr_indicies' tells us what it connected to what. We use
@@ -269,12 +302,12 @@ class Disc  {
 	}
 
 	ReloadGLTriangles() {
-		this.ReloadTriple(this.t_vao, this.t_vrts_buffer, this.tr_vrts, gl.DYNAMIC_DRAW);
+		this.ReloadTriple(this.t_vao, this.t_vrts_buffer, this.tr_vrts, gl.DYNAMIC_DRAW, VERTEX_INDEX);
 		this.Unbind();
 	}
 
 	ReloadGLLineSegments(do_index_buffer = false) {
-		this.ReloadTriple(this.vao, this.vrts_buffer, this.vrts, gl.DYNAMIC_DRAW);
+		this.ReloadTriple(this.vao, this.vrts_buffer, this.vrts, gl.DYNAMIC_DRAW, VERTEX_INDEX);
 		if (do_index_buffer) {
 			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.line_segs_indicies_buffer);
 			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.ls_indicies), gl.DYNAMIC_DRAW);
@@ -315,6 +348,20 @@ class Disc  {
 		gl.bindVertexArray(this.vao);
 		gl.drawElements(gl.LINES, this.ls_indicies.length, gl.UNSIGNED_SHORT, 0);
 		gl.bindVertexArray(null);
+		gl.useProgram(null);
+	}
+
+	DrawPhong(mv, p, material, light_pos, shader = phong_shader) {
+		gl.useProgram(shader.program);
+		gl.uniformMatrix4fv(shader.u_mv, false, mv);
+		gl.uniformMatrix4fv(shader.u_p, false, p);
+		let nm = mat3.create();
+		mat3.fromMat4(nm, mv) 
+		mat3.transpose((nm, mat3.inverse(nm, nm)));
+		gl.uniformMatrix3fv(shader.u_nm, false, nm);
+		gl.bindVertexArray();
+		gl.bindVertexArray(null);
+		//HERE
 		gl.useProgram(null);
 	}
 

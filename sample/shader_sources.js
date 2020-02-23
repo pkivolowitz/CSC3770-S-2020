@@ -1,5 +1,17 @@
 ;
 
+/*	Standards for compatible shaders:
+ *	
+ *	Attribute Index			Purpose
+ *	0						vertex coordinates
+ *	1						colors
+ *	2						normals
+*/
+
+var	VERTEX_INDEX = 0;
+var COLOR_INDEX = 1;
+var NORMAL_INDEX = 2;
+
 /*	The indexed color shader is a NON-LIGHTED shader feeding vertex colors as attributes.
 */
 
@@ -53,6 +65,7 @@ void main(void)
 
 solid_color_shader.vrtx = `#version 300 es
 uniform mat4 u_mvp;
+
 layout(location = 0) in vec3 a_vertex_coordinates;
 
 void main(void)
@@ -75,8 +88,8 @@ void main(void)
 phong_pp_shader.vrtx = `#version 300 es
 precision mediump float;
 
-in vec3 a_vertices;
-in vec3 a_normals;
+layout(location = 0) in vec3 a_vertices;
+layout(location = 2) in vec3 a_normals;
 
 uniform mat4 u_modelview_matrix;
 uniform mat3 u_normal_matrix;

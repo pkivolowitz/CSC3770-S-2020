@@ -173,7 +173,7 @@ class Disc  {
 		// correct orientation. Then, the display normals will be rewritten from the new
 		// normal values.
 		this.RecalculateNormals();
-		this.RecalculateDisplayNormals();
+		//this.RecalculateDisplayNormals();
 	}
 
 	/** ReloadTriple()

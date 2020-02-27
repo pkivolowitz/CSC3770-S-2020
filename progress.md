@@ -32,3 +32,11 @@ Intro day - we talked about transformations including:
 * `DYNAMIC_DRAW` is a hint to the GPU that the data will be overwritten frequently
 * These are just hints
 
+## February 25
+
+* We went over code from `sample`.
+* We went deeply into:
+   * Phong illumination
+   * Phong shading
+   * Gouraud shading
+ 

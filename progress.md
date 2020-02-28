@@ -40,3 +40,9 @@ Intro day - we talked about transformations including:
    * Phong shading
    * Gouraud shading
  
+ ## February 27
+
+We reviewed.
+
+Today was a workday.
+

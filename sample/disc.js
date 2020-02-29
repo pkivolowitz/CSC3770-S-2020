@@ -23,6 +23,7 @@ class Disc  {
 		this.InitGLLineSegments();
 		this.InitGLDisplayNormals();
 		this.InitGLTriangles();
+		this.InitGLTrianglesWithNormals();
 	}
 
 	/** InitializeVertices()
@@ -283,6 +284,15 @@ class Disc  {
 		this.ReloadGLTriangles();
 	}
 
+	InitGLTrianglesWithNormals() {
+		this.tn_vao = gl.createVertexArray();
+		this.tn_vrts_buffer = gl.createBuffer();
+		this.tn_nrml_buffer = gl.createBuffer();
+		this.ReloadTriple(this.tn_vao, this.tn_vrts_buffer, this.tr_vrts, gl.DYNAMIC_DRAW, VERTEX_INDEX);
+		this.ReloadTriple(this.tn_vao, this.tn_nrml_buffer, this.tr_nrml, gl.DYNAMIC_DRAW, NORMAL_INDEX);
+		this.Unbind();
+	}
+
 	InitGLLineSegments() {
 		this.vao = gl.createVertexArray();
 		this.vrts_buffer = gl.createBuffer();
@@ -352,16 +362,34 @@ class Disc  {
 	}
 
 	DrawPhong(mv, p, material, light_pos, shader = phong_shader) {
+		if (material == null) {
+			material = { 
+				'ka' : vec3.fromValues(0.2, 0.2, 0.2),
+				'kd' : vec3.fromValues(0.6, 0.6, 0.6),
+				'ks' : vec3.fromValues(0.2, 0.2, 0.2),
+				'kp' : 100.0
+			}
+		}
+		if (light_pos == null) {
+			light_pos = vec4.fromValues(0, 0, 10, 1);
+		}
 		gl.useProgram(shader.program);
 		gl.uniformMatrix4fv(shader.u_mv, false, mv);
 		gl.uniformMatrix4fv(shader.u_p, false, p);
+		gl.uniform3fv(shader.u_ka, material['ka']);
+		gl.uniform3fv(shader.u_kd, material['kd']);
+		gl.uniform3fv(shader.u_ks, material['ks']);
+		gl.uniform1f(shader.u_kp, material['kp']);
+		gl.uniform4fv(shader.u_lp, light_pos);
+
 		let nm = mat3.create();
-		mat3.fromMat4(nm, mv) 
-		mat3.transpose((nm, mat3.inverse(nm, nm)));
+		mat3.fromMat4(nm, mv);
+		mat3.invert(nm, nm);
+		mat3.transpose(nm, nm);
 		gl.uniformMatrix3fv(shader.u_nm, false, nm);
-		gl.bindVertexArray();
+		gl.bindVertexArray(this.tn_vao);
+		gl.drawArrays(gl.TRIANGLES, 0, this.tr_vrts.length / 3.0);
 		gl.bindVertexArray(null);
-		//HERE
 		gl.useProgram(null);
 	}
 

@@ -40,11 +40,16 @@ function InitializePhongShader() {
 	gl.useProgram(s.program);
 	s.a_vertex_coordinates = VERTEX_INDEX;
 	s.a_normals = NORMAL_INDEX;
-	s.u_mv = gl.getUniformLocation(s.program, "u_modelview_matrix");
-	s.u_nm = gl.getUniformLocation(s.program, "u_normal_matrix");
-	s.u_p = gl.getUniformLocation(s.program, "u_projection_matrix");
-	s.u_material = gl.getUniformLocation(s.program, "u_material");
-	s.u_light_pos = gl.getUniformLocation(s.program, "u_light_position");
+	s.u_mv = gl.getUniformLocation(s.program, "u_mv");
+	s.u_nm = gl.getUniformLocation(s.program, "u_nm");
+	s.u_p = gl.getUniformLocation(s.program, "u_p");
+
+	s.u_ka = gl.getUniformLocation(s.program, "u_mt.ka");
+	s.u_kd = gl.getUniformLocation(s.program, "u_mt.kd");
+	s.u_ks = gl.getUniformLocation(s.program, "u_mt.ks");
+	s.u_kp = gl.getUniformLocation(s.program, "u_mt.kp");
+	
+	s.u_lp = gl.getUniformLocation(s.program, "u_light_position");
 	gl.useProgram(null);
 
 	console.log('Phong shader:');
@@ -52,8 +57,11 @@ function InitializePhongShader() {
 	console.log('MV handle: ' + s.u_mv);
 	console.log('NM handle: ' + s.u_nm);
 	console.log('P  handle: ' + s.u_p);
-	console.log('Material handle: ' + s.u_material);
-	console.log('Lght Pos handle: ' + s.u_light_pos);
+	console.log('ka handle: ' + s.u_ka);
+	console.log('kd handle: ' + s.u_kd);
+	console.log('ks handle: ' + s.u_ks);
+	console.log('kp handle: ' + s.u_kp);
+	console.log('Lght Pos handle: ' + s.u_lp);
 }
 
 function InitializeSolidColorShader() {

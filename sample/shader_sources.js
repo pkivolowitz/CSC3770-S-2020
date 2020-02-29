@@ -135,9 +135,9 @@ vec4 ads()
 		return vec4(u_mt.ka, 1.0);
 	}
 
-	vec3 s = normalize(v_eyeCoords - vec3(u_light_position));
+	vec3 s = normalize(vec3(u_light_position) - v_eyeCoords);
 	vec3 v = normalize(-v_eyeCoords);
-	vec3 r = reflect(s, n);
+	vec3 r = reflect(-s, n);
 	vec3 diffuse = max(dot(s, n), 0.0) * u_mt.kd;
 	vec3 specular = pow(max(dot(r, v), 0.0), u_mt.kp) * u_mt.ks;
 
